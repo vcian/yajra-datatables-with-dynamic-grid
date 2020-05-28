@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
-Route::get('users', ['uses'=>'UserController@index', 'as'=>'users.index']);
+Route::get('/', ['uses'=>'UserController@index', 'as'=>'users.index']);
+Route::get('users', ['uses'=>'UserController@export', 'as'=>'users.export']);
+Route::get('drags', ['uses'=>'UserController@drags', 'as'=>'users.drags']);
 Route::get('get-column-list/{slug}', 'TableColumnsListController@getColumnList');
 Route::post('post-column-list/{slug}', 'TableColumnsListController@updateColumns');
