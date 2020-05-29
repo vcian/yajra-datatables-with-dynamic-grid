@@ -71,8 +71,20 @@ class UserController extends Controller
      */
     public function drags(Request $request)
     {
+        $config = [
+            'DT_RowIndex' => 'No',
+            'name'=>'Name',
+            'email'=> 'Email',
+            'action' => 'Action',
+        ];
         $columnsData = TableColumnsList::where('slug','users')->where('user_id','1')->first();
-        $checkedFields = explode(',',$columnsData->fields);
+        if(empty($columnsData)) {
+            $checkedFields = ['DT_RowIndex','name','email','action'];
+            $fieldwidth = '118,118,118,118';
+        } else {
+            $checkedFields = explode(',',$columnsData->fields);
+            $fieldwidth = $columnsData->fieldwidth;
+        }
         if ($request->ajax()) {
             if(!empty($checkedFields)) {
                 $checkedFields = array_diff($checkedFields,['DT_RowIndex','action']);
@@ -87,7 +99,6 @@ class UserController extends Controller
                 ->rawColumns(['action'])
                 ->make(true);
         }
-
-        return view('drag',compact('checkedFields'));
+        return view('drag',compact('checkedFields','fieldwidth','config'));
     }
 }

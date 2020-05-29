@@ -18,6 +18,7 @@ class CreateTableColumnsList extends Migration
             $table->string('slug',50);
             $table->string('fields',255);
             $table->string('fieldname',255);
+            $table->string('fieldwidth',255);
             $table->unsignedBigInteger('user_id');
             $table->foreign('user_id')->references('id')->on('users');
             $table->tinyInteger('status')->comment("0=> InActive ,1=> Active")->default(0);

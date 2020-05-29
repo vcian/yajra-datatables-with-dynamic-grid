@@ -16,9 +16,18 @@ class ColumnRepository extends BaseRepository
     public function updateColumns($request,$slug)
     {
         try {
+            $fieldwidth = [];
             $input = $request->all();
-            $input['fields'] = implode(',',$input['fields']);
-            $input['fieldname'] = implode(',',$input['fieldname']);
+            foreach ($input['fields'] as $key=>$va) {
+                if(isset($input['widthData'][$key]) && !empty($input['widthData'][$key])) {
+                    $fieldwidth[] = $input['widthData'][$key];
+                } else {
+                    $fieldwidth[] = '118';
+                }
+            }
+            $input['fields'] = implode(',',array_unique($input['fields']));
+            $input['fieldname'] = implode(',',array_unique($input['fieldname']));
+            $input['fieldwidth'] = implode(',',$fieldwidth);
             $input['slug'] = $slug;
             $input['status'] = '1';
             $columnData = TableColumnsList::where('slug',$slug)->where('user_id','1')->first();

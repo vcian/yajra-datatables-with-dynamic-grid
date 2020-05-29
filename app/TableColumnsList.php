@@ -13,7 +13,7 @@ class TableColumnsList extends Model
      * @var array
      */
     protected $fillable = [
-        'id','slug','fields','fieldname','user_id','status','created_at','updated_at'
+        'id','slug','fields','fieldname','fieldwidth','user_id','status','created_at','updated_at'
     ];
 
     /**

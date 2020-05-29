@@ -12,32 +12,53 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
     <script src="https://cdn.datatables.net/1.10.19/js/dataTables.bootstrap4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/jeffreydwalter/ColReorderWithResize@9ce30c640e394282c9e0df5787d54e5887bc8ecc/ColReorderWithResize.js"></script>
+    <style>
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid blue;
+            border-right: 16px solid green;
+            border-bottom: 16px solid red;
+            border-left: 16px solid pink;
+            width: 120px;
+            height: 120px;
+            -webkit-animation: spin 2s linear infinite;
+            animation: spin 2s linear infinite;
+        }
+
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-
 <div class="container">
-    <h1>Laravel 7 Datatables</h1>
+
     <div>
         <div style="display:none" id="login-alert" class="alert alert-danger col-sm-12"></div>
         <div style="display:none" class="alert alert-success col-sm-12"></div>
+        <h1>Laravel 7 Datatables</h1>
+
+        <input type="hidden" id="fieldwidth" value="{{ $fieldwidth }}">
         <br/>
+        <div class="loader" style="display:none;position:absolute;top:50%;left:50%;padding:2px; z-index: 10"></div>
         <div class="container">
             <div class="checkbox-data">
-                @php
-                $config = [
-                    'DT_RowIndex' => 'No',
-                    'name'=>'Name',
-                    'email'=> 'Email',
-                    'action' => 'Action',
-                ];
-                @endphp
-                @foreach($checkedFields as $value)
+
+{{--                {{ dd($fieldwidth,$checkedFields,$config) }}--}}
+            @foreach($checkedFields as $value)
                     <input type="checkbox" data-id="{{ $config[$value] }}" name='hide_columns[]' {{ (in_array($value,$checkedFields)) ? 'checked': '' }} value='{{ $value }}'> {{ $config[$value] }}
                     @php unset($config[$value]) @endphp
                 @endforeach
                 @foreach($config as $key=>$val)
-                    <input type="checkbox" data-id="{{ $val }}" name='hide_columns[]' {{ (in_array($key,$checkedFields)) ? 'checked': '' }} value='{{ $key }}'> {{ $val }}
-                @endforeach
+                        <input type="checkbox" data-id="{{ $val }}" name='hide_columns[]' {{ (in_array($key,$checkedFields)) ? 'checked': '' }} value='{{ $key }}'> {{ $val }}
+                    @endforeach
             </div>
         <input type="button" class="btn btn-success btn-sm" id="but_showhide" value='save grids'>
     </div>
@@ -54,8 +75,26 @@
     <script type="text/javascript">
 
         $(function () {
+            $(document).ajaxStart(function(){
+                $("#wait").css("display", "block");
+            });
+            $(document).ajaxComplete(function(){
+                $("#wait").css("display", "none");
+            });
             var selected_arr = [];
             var tempCheckBox = [];
+            var storeWidth = $("#fieldwidth").val().split(',')
+            var storeWidthArr = []
+            $.each(storeWidth, function (key,value) {
+                storeWidthArr.push({ "width": value, "aTargets": [ key ] });
+            });
+            function getHeaderResize() {
+                var headerResize = [];
+                $.each($('.data-table thead tr th'), function (key, value) {
+                    headerResize.push($(this).width());
+                });
+                return headerResize;
+            }
             function setColumns() {
                 $(".data-id-info").html('');
                 selected_arr = [];
@@ -74,53 +113,79 @@
             var table = $('.data-table').DataTable({
                 processing: true,
                 serverSide: true,
-                ajax: "{{ route('users.index') }}",
+                ajax: "{{ route('users.drags') }}",
                 columns: selected_arr,
                 dom: 'Rlfrtip',
+                aoColumnDefs:storeWidthArr,
 
             });
 
+            // // Hide & show columns
+            // $('#but_showhide').click(function(){
+            //     if($('input[type="checkbox"]:checked').length == 0) {
+            //         alert('You must select at least one column!')
+            //         return false;
+            //     }
+            //     var checked_arr = [];var unchecked_arr = [];var checked_arrTr = [];
+            //
+            //     updateColsInfo()
+            //     // Read all unchecked checkboxes
+            //     $.each($('input[type="checkbox"]:not(:checked)'), function (key, value) {
+            //         unchecked_arr.push(this.value);
+            //     });
+            //
+            //     // Hide the checked columns
+            //     table.columns(checked_arr).visible(false);
+            //
+            //     // Show the unchecked columns
+            //     table.columns(unchecked_arr).visible(true);
+            //     reloadDataTable();
+            //
+            // });
+
             // Hide & show columns
             $('#but_showhide').click(function(){
-                if($('input[type="checkbox"]:checked').length == 0) {
-                    alert('You must select at least one column!')
-                    return false;
-                }
-                var checked_arr = [];var unchecked_arr = [];var checked_arrTr = [];
+                var checked_arr = [];var unchecked_arr = [];
 
-                updateColsInfo()
+                // Read all checked checkboxes
+                $.each($('input[type="checkbox"]:checked'), function (key, value) {
+                    checked_arr.push(this.value);
+                });
+
                 // Read all unchecked checkboxes
                 $.each($('input[type="checkbox"]:not(:checked)'), function (key, value) {
                     unchecked_arr.push(this.value);
                 });
-
+                console.log(checked_arr);
                 // Hide the checked columns
                 table.columns(checked_arr).visible(false);
 
                 // Show the unchecked columns
                 table.columns(unchecked_arr).visible(true);
-                reloadDataTable();
-
+                updateColsInfo();
+                table.ajax.reload( null, false );
             });
+
             // reload the datatable after save new grid
-            function reloadDataTable() {
-                table.destroy();
-                // after destroy table we need to add new table
-                $('.data-table').empty();
-                $('.data-table').html('<thead><tr class="data-id-info"></tr></thead><tbody></tbody>');
-                // set header information
-                $.each($('input[type="checkbox"]:checked'), function (key, value) {
-                    $(".data-id-info").append("<th data-value="+this.value+" data-name="+$(this).attr('data-id')+">"+$(this).attr('data-id')+"</th>");
-                });
-                setColumns();
-                table = $('.data-table').DataTable({
-                    processing: true,
-                    serverSide: true,
-                    ajax: "{{ route('users.index') }}",
-                    columns: selected_arr,
-                    dom: 'Rlfrtip',
-                });
-            }
+            {{--function reloadDataTable() {--}}
+            {{--    table.destroy();--}}
+            {{--    // after destroy table we need to add new table--}}
+            {{--    $('.data-table').empty();--}}
+            {{--    $('.data-table').html('<thead><tr class="data-id-info"></tr></thead><tbody></tbody>');--}}
+            {{--    // set header information--}}
+            {{--    $.each($('input[type="checkbox"]:checked'), function (key, value) {--}}
+            {{--        $(".data-id-info").append("<th data-value="+this.value+" data-name="+$(this).attr('data-id')+">"+$(this).attr('data-id')+"</th>");--}}
+            {{--    });--}}
+            {{--    setColumns();--}}
+            {{--    table = $('.data-table').DataTable({--}}
+            {{--        processing: true,--}}
+            {{--        serverSide: true,--}}
+            {{--        ajax: "{{ route('users.index') }}",--}}
+            {{--        columns: selected_arr,--}}
+            {{--        dom: 'Rlfrtip',--}}
+            {{--    });--}}
+            {{--}--}}
+
             $('.data-table') .on('mousedown.ColReorder touchstart.ColReorder', function(event) {
                 setTimeout(function(){
                     $.each($('input[type="checkbox"]:not(:checked)'), function (key, value) {
@@ -156,13 +221,17 @@
                         "_token": $('meta[name="csrf-token"]').attr('content'),
                         fields: checked_arr,
                         fieldname: checked_arrTr,
+                        widthData: getHeaderResize(),
                         user_id: 1,
                     },
                     beforeSend: function() {
+
                         $('.alert-success,.alert-danger').html('');
                         $('.alert-success,.alert-danger').hide();
+                        $('.loader').show();
                     },
                     success: function(data){
+                        $('.loader').hide();
                         if(data.code=='200') {
                             $('.alert-success').show();
                             $('.alert-success').append(data.status);
@@ -172,6 +241,7 @@
                         }
                     },
                     error: function (jqXHR) {
+                        $('.loader').hide();
                         $('.alert-danger').show();
                         $('.alert-danger').append(JSON.parse(jqXHR.responseText).message);
                     }
