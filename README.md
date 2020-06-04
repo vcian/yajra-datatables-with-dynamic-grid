@@ -23,3 +23,10 @@ Run migration for add database tables
 for run the project
 
     php artisan ser
+
+replace http://127.0.0.1:8000 to your domain
+
+    http://127.0.0.1:8000/ - dynamic grid
+    http://127.0.0.1:8000/users - dynamic grid with export information
+    http://127.0.0.1:8000/drags - dynamic grid with ordering and resizing
+
